@@ -2,15 +2,18 @@
 
 namespace Prezto;
 
-use \Psr\Http\Message\RequestInterface as Request;
-use \Psr\Http\Message\ResponseInterface as Response;
-use \Prezto\Mode as Mode;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class PermissionMiddleware
+/**
+ * For Slim 4
+ */
+class PermissionMiddleware implements MiddlewareInterface
 {
     protected $patterns;
     protected $mode = null;
-    protected $allowed = null;
 
     public function __construct($patterns = [], $mode = Mode::ALLOW)
     {
@@ -18,27 +21,29 @@ class PermissionMiddleware
         $this->mode = $mode;
     }
 
-    public function __invoke(Request $request, Response $response, $next)
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if ($this->mode == Mode::ALLOW)
-            $this->allowed = $this->allow($request);
+        $isAllowed = null;
 
-        if ($this->mode == Mode::DENY)
-            $this->allowed = $this->deny($request);
+        if ($mode === Mode::ALLOW) {
+            $isAllowed = $this->allow($request);
+        } elseif ($mode === Mode::DENY) {
+            $isAllowed = $this->deny($request);
+        }
 
-        if (!$this->allowed)
-            $response = $response->withStatus(401);
+        if (!$isAllowed) {
+            $request =  $request->withStatus(401);
+        }
 
-        $response = $next($request, $response);
-        return $response;
+       return $handler->handle($request);
     }
 
     /**
      * The default allow rule set allows all connections through unless otherwise stated
-     * @param Request $request
+     * @param ServerRequestInterface $request
      * @return bool
      */
-    public function allow(Request $request)
+    public function allow(ServerRequestInterface $request): bool
     {
         foreach ($this->patterns as $regex)
             if (preg_match(sprintf("#^%s$#i", $regex), $request->getUri()->getPath()))
@@ -49,10 +54,10 @@ class PermissionMiddleware
 
     /**
      * A default deny rule set will deny all connections through  unless a url matches a specific rule.
-     * @param Request $request
+     * @param ServerRequestInterface $request
      * @return bool
      */
-    public function deny(Request $request)
+    public function deny(ServerRequestInterface $request): bool
     {
         foreach ($this->patterns as $regex)
             if (preg_match(sprintf("#^%s$#i", $regex), $request->getUri()->getPath()))

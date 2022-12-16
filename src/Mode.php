@@ -2,8 +2,8 @@
 
 namespace Prezto;
 
-class Mode
+final class Mode
 {
-    const DENY = 0;
-    const ALLOW = 1;
+    public const DENY = 0;
+    public const ALLOW = 1;
 }
