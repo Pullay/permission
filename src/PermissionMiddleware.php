@@ -7,27 +7,38 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-/**
- * For Slim 4
- */
 class PermissionMiddleware implements MiddlewareInterface
 {
-    protected $patterns;
-    protected $mode = null;
+    /**
+     * @var array
+     */
+    protected array $patterns;
 
-    public function __construct($patterns = [], $mode = Mode::ALLOW)
+    /**
+     * @var int|null
+     */
+    protected ?int $mode = null;
+
+    /**
+     * @param array $patterns
+     * @param int $mode
+     */
+    public function __construct(array $patterns = [], int $mode = Mode::ALLOW)
     {
         $this->patterns = $patterns;
         $this->mode = $mode;
     }
-
+  
+    /**
+     * {@inheritdoc}
+     */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $isAllowed = null;
 
-        if ($mode === Mode::ALLOW) {
+        if ($this->mode === Mode::ALLOW) {
             $isAllowed = $this->allow($request);
-        } elseif ($mode === Mode::DENY) {
+        } elseif ($this->mode === Mode::DENY) {
             $isAllowed = $this->deny($request);
         }
 
